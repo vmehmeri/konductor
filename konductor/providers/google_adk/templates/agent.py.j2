@@ -8,7 +8,7 @@ from . import tools
 
 # --- Model Configurations ---
 MODEL_CONFIG_MAP = {
-{% for model in llm_models %}
+{% for model in models %}
     "{{ model.metadata.name }}": {
         "model": "{{ model.spec.modelId }}",
         {% if model.spec.parameters %}

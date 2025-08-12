@@ -1,0 +1,3 @@
+"""
+Example manifests and configurations.
+"""

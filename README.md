@@ -1,27 +1,30 @@
 
 # Konductor: A declarative configuration engine for building AI Agents
 
-Konductor is a declarative, Kubernetes-like configuration engine for building and deploying AI agents with Google's Agent Development Kit (ADK).
+Konductor is a modular, declarative configuration engine for building AI agents based on desired state, instead of code. It uses Kubernetes-like YAML manifests to generate fully functional agent applications.
 
-Instead of writing imperative Python code to define and connect agent components, users define agents and their tools in simple YAML manifests, using the familiar Kubernetes Resource Model (KRM). A code generator then "compiles" these manifests into a fully runnable ADK Python project.
+Currently **focusing on Google's Agent Development Kit (ADK)** as the primary provider, with plans to expand to other AI agent frameworks.
 
-The vision for Konductor is for it to be a complete framework for declaring agent configurations, including tools, connected data, and complex multi-agent architectures, and deploying agents to an Agent runtime (Agent Engine on Google Cloud) via a control-plane CLI utility `adkctl` (WIP). 
+Instead of writing imperative Python code to define and connect agent components, users define agents and their tools in simple YAML manifests, using the familiar Kubernetes Resource Model (KRM). A code generator then "compiles" these manifests into fully runnable Python projects.
 
-End goal: `adkctl apply -f <manifest>.yaml` -> Agent up and running in Agent Engine.
+The vision for Konductor is for it to be a complete framework for declaring agent configurations across multiple AI frameworks, supporting diverse types of tools, connected data, and complex multi-agent architectures, with deployment capabilities to various agent runtimes.
+
+End goal: Universal agent configuration that can target multiple frameworks and deployment environments.
 
 -----
 
 ## 🏛️ Key Concepts
 
+  * **Provider-Based Architecture**: Modular system supporting multiple AI agent frameworks through pluggable providers
   * **Declarative Manifests**: You define the *desired state* of your agent system in `.yaml` files. Each resource (like an `LlmAgent` or a `Tool`) has a `kind`, `metadata`, and a `spec`, just like in Kubernetes.
-  * **Code Generation**: The `generator.py` script acts as a simple control plane. It parses the YAML manifest and uses templates to generate the necessary ADK Python source code, wiring everything together automatically.
+  * **Code Generation**: Provider-specific generators parse YAML manifests and use templates to generate framework-appropriate source code, wiring everything together automatically.
 
 -----
 
 ## Features
 
-- **YAML-to-Code Generation**: Convert simple YAML manifests into fully functional ADK Python applications
-- **Tool Integration**: Automatically wire up custom Python functions as agent tools
+- **Multi-Provider Support**: Extensible architecture supporting multiple AI frameworks (currently Google ADK)
+- **YAML-to-Code Generation**: Convert simple YAML manifests into fully functional agent applications
 - **Agent Configuration**: Define LLM agents with models, instructions, and tool references
 - **Ready-to-Run Output**: Generated code includes a complete application structure with interactive CLI
 
@@ -51,35 +54,47 @@ export GOOGLE_API_KEY=<your-api-key>
 
 ## Quick Start
 
-Follow these steps to generate and run an ADK agent:
+Follow these steps to generate and run an agent:
 
 ```bash
-# 1. Lock dependencies
-uv lock 
+# 1. Generate agent code from YAML manifest using the new CLI
+uv run python -m konductor.cli generate examples/simple_agent_stack.yaml
 
-# 2. Generate agent code from YAML manifest
-uv run python konductor/generator.py simple_agent_stack.yaml
+# Or specify provider and output directory
+uv run python -m konductor.cli generate -p google_adk -o my_agent examples/simple_agent_stack.yaml
 
-# 3. Activate the virtual environment
+# 2. Activate the virtual environment
 . .venv/bin/activate
 
-# 4. Run the ADK web interface
+# 3. Run the ADK web interface (for Google ADK provider)
 adk web 
 
-# 5. Interact with your newly built agent!
+# 4. Interact with your newly built agent!
 ```
+
 
 
 ## Project Structure
 
 ```
 konductor/
-├── konductor/              # Core generator package
-│   ├── generator.py        # Code generation logic with Jinja2 templates
-│   └── parser.py          # YAML manifest parser with Pydantic models
-├── tools/                  # Directory for example custom tool implementations
-│   └── weather.py         # Example weather tool
-└── simple_agent_stack.yaml # Example manifest file
+├── konductor/                      # Core package
+│   ├── core/                      # Provider-agnostic core components
+│   │   ├── models.py             # Common resource models
+│   │   ├── parser.py             # Universal manifest parser
+│   │   └── generator.py          # Generation orchestrator
+│   ├── providers/                 # Framework-specific implementations
+│   │   ├── base.py               # Abstract provider interfaces
+│   │   └── google_adk/           # Google ADK provider
+│   │       ├── models.py         # ADK-specific models
+│   │       ├── generator.py      # ADK code generator
+│   │       └── templates/        # ADK Jinja2 templates
+│   └── cli.py                    # Command-line interface
+├── examples/                      # Example manifests
+│   ├── simple_agent_stack.yaml   # Simple agent example
+│   └── sequential_stack.yaml     # Multi-agent pipeline example
+├── tools/                         # Example tool implementations
+│   └── weather.py                # Example weather tool
 ```
 
 ## Manifest Format
@@ -105,6 +120,20 @@ spec:
       description: "The name of the city."
 ```
 
+### Model Definition
+
+```yaml
+apiVersion: adk.google.com/v1alpha1
+kind: LlmModel
+metadata:
+  name: gemini_flash_model
+spec:
+  provider: google
+  modelId: "gemini-2.5-flash"
+  parameters:
+    temperature: 0.7
+```
+
 ### Agent Definition
 
 ```yaml
@@ -113,7 +142,7 @@ kind: LlmAgent
 metadata:
   name: test_agent
 spec:
-  model: "gemini-2.5-flash"
+  modelRef: gemini_flash_model
   instruction: "You are a helpful weather assistant."
   toolRefs:
     - weather-tool
@@ -121,33 +150,48 @@ spec:
 
 ## How It Works
 
-1. **Parse**: The parser reads your YAML manifest and validates it against Pydantic models
-2. **Generate**: Jinja2 templates transform the parsed data into Python code
-3. **Structure**: The generator creates a complete ADK application structure with:
+1. **Parse**: The core parser reads your YAML manifest and validates it against Pydantic models
+2. **Provider Selection**: Choose the target framework (currently Google ADK)
+3. **Generate**: Provider-specific Jinja2 templates transform the parsed data into framework-appropriate code
+4. **Structure**: The generator creates a complete application structure with:
    - Tool imports and mapping
    - Agent definitions with configured models and instructions
    - Interactive CLI runner for testing
-4. **Run**: The generated application is ready to execute with ADK
-
+5. **Run**: The generated application is ready to execute with the target framework
 
 ## Command Line Options
 
+### New CLI (Recommended)
+
 ```bash
-uv run python konductor/generator.py [options] <manifest_file>
+python -m konductor.cli <command> [options]
 
-Arguments:
-  manifest_file          Path to the input YAML manifest file
+Commands:
+  generate              Generate code from manifest
+  list-providers        List available providers
+  dependencies          Show required dependencies
 
-Options:
-  -o, --output-dir DIR   Directory to save generated code (default: generated_agent)
+Generate Options:
+  manifest_file         Path to the input YAML manifest file
+  -p, --provider        Provider to use (default: google_adk)
+  -o, --output-dir      Directory to save generated code (default: generated_agent)
+
+Examples:
+  python -m konductor.cli generate examples/simple_agent_stack.yaml
+  python -m konductor.cli generate -p google_adk -o my_agent examples/simple_agent_stack.yaml
+  python -m konductor.cli list-providers
+  python -m konductor.cli dependencies -p google_adk
 ```
 
 ## Dependencies
 
-- `google-adk>=1.10.0` - Google Agent Development Kit
+### Core Dependencies
 - `jinja2>=3.1.6` - Template engine for code generation
 - `pydantic>=2.11.7` - Data validation for manifest parsing
 - `pyyaml>=6.0.2` - YAML file parsing
+
+### Provider-Specific Dependencies
+- **Google ADK**: `google-adk>=1.10.0` - Google Agent Development Kit
 
 ## License
 
@@ -163,14 +207,33 @@ Victor Dantas
 
 ## Roadmap
 
+### Current Focus: Google ADK Provider
+We are currently focusing on providing the best possible experience for Google ADK users before expanding to other frameworks.
+
+**Google ADK Enhancements:**
 - [ ] More agent/tool kinds: Support for LoopAgent, and ToolSet
 - [ ] Support for remote, authenticated tools
 - [ ] Support for data kinds: SessionService, MemoryService, etc.
 - [ ] Support for eval kinds: EvalJob, etc.
-- [ ] A Robust CLI: A dedicated command-line tool (adkctl) to replace the Python scripts.
-- [ ] Configuration validation and error handling, with proper reporting for malformed manifests.
+- [ ] Enhanced CLI: A dedicated command-line tool (adkctl) with deployment capabilities
+- [ ] Configuration validation and error handling, with proper reporting for malformed manifests
 - [ ] Support for creating secrets via CLI (Google Secret Manager)
 - [ ] Support for agent chaining and workflows
-- [ ] Deployment Integration: The CLI could directly call adk deploy on the generated code
+- [ ] Deployment Integration: The CLI could directly call `adk deploy` on the generated code
+
+### Future: Multi-Provider Support
+Once the Google ADK provider is mature, we plan to expand support to other AI agent frameworks:
+
+- [ ] **LangChain Provider**: Support for LangChain agents and tools
+- [ ] **CrewAI Provider**: Multi-agent orchestration with CrewAI
+- [ ] **AutoGen Provider**: Microsoft AutoGen framework support
+- [ ] **LlamaIndex Provider**: LlamaIndex agents and workflows
+- [ ] **Custom Providers**: Framework for building custom provider implementations
+
+### Long-term Vision
+- [ ] Universal agent configuration format across all providers
+- [ ] Cross-provider agent composition and workflows
+- [ ] Multi-cloud deployment targets (Google Cloud, Azure, AWS)
+- [ ] Agent marketplace and sharing ecosystem
 
 
