@@ -1,0 +1,25 @@
+
+apiVersion: adk.poc.com/v1alpha1
+kind: Tool
+metadata:
+  name: weather-tool
+spec:
+  type: pythonFunction
+  description: A tool to fetch weather information.
+  source:
+    file: "tools/weather.py"
+    functionName: "get_weather_report"
+  parameters:
+    - name: "city"
+      type: "string"
+      description: "The name of the city."
+---
+apiVersion: adk.poc.com/v1alpha1
+kind: LlmAgent
+metadata:
+  name: test_agent
+spec:
+  model: "gemini-2.5-flash"
+  instruction: "You are a helpful weather assistant."
+  toolRefs:
+    - weather-tool
