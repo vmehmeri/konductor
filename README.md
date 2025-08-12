@@ -5,6 +5,8 @@ Konductor is a modular, declarative configuration engine for building AI agents 
 
 Currently **focusing on Google's Agent Development Kit (ADK)** as the primary provider, with plans to expand to other AI agent frameworks.
 
+![](./assets/konductor-demo.gif)
+
 Instead of writing imperative Python code to define and connect agent components, users define agents and their tools in simple YAML manifests, using the familiar Kubernetes Resource Model (KRM). A code generator then "compiles" these manifests into fully runnable Python projects.
 
 The vision for Konductor is for it to be a complete framework for declaring agent configurations across multiple AI frameworks, supporting diverse types of tools, connected data, and complex multi-agent architectures, with deployment capabilities to various agent runtimes.
