@@ -1,8 +1,16 @@
-
+apiVersion: adk.poc.com/v1alpha1
+kind: LlmModel
+metadata:
+  # This name is what the agent will reference.
+  name: gemini_flash_model
+spec:
+  provider: google
+  modelId: "gemini-2.5-flash"
+---
 apiVersion: adk.poc.com/v1alpha1
 kind: Tool
 metadata:
-  name: weather-tool
+  name: weather_tool
 spec:
   type: pythonFunction
   description: A tool to fetch weather information.
@@ -19,7 +27,8 @@ kind: LlmAgent
 metadata:
   name: test_agent
 spec:
-  model: "gemini-2.5-flash"
+  modelRef: gemini_flash_model
   instruction: "You are a helpful weather assistant."
+  # This must match the tool's new metadata.name.
   toolRefs:
-    - weather-tool
+    - weather_tool

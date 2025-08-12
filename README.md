@@ -163,11 +163,13 @@ Victor Dantas
 
 ## Roadmap
 
-- [ ] More agent/tool kinds: Support for SequentialAgent, LoopAgent, and ToolSet
-- [ ] Support for data kinds: MemoryStore, etc.
+- [ ] More agent/tool kinds: Support for LoopAgent, and ToolSet
+- [ ] Support for remote, authenticated tools
+- [ ] Support for data kinds: SessionService, MemoryService, etc.
 - [ ] Support for eval kinds: EvalJob, etc.
 - [ ] A Robust CLI: A dedicated command-line tool (adkctl) to replace the Python scripts.
 - [ ] Configuration validation and error handling, with proper reporting for malformed manifests.
+- [ ] Support for creating secrets via CLI (Google Secret Manager)
 - [ ] Support for agent chaining and workflows
 - [ ] Deployment Integration: The CLI could directly call adk deploy on the generated code
 

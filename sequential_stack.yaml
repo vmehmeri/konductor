@@ -1,0 +1,52 @@
+apiVersion: adk.poc.com/v1alpha1
+kind: LlmModel
+metadata:
+  name: gemini-flash-creative
+spec:
+  provider: google
+  modelId: "gemini-2.5-flash"
+  parameters:
+    temperature: 0.7
+---
+apiVersion: adk.poc.com/v1alpha1
+kind: LlmModel
+metadata:
+  name: gemini-flash-focused
+spec:
+  provider: google
+  modelId: "gemini-2.5-flash"
+  parameters:
+    temperature: 0.2
+---
+apiVersion: adk.poc.com/v1alpha1
+kind: LlmAgent
+metadata:
+  name: idea_generator
+spec:
+  modelRef: gemini-flash-creative
+  instruction: |
+    You are a creative brainstormer. 
+    Given a topic from the user, generate a bulleted list of 3-4 key ideas related to it.
+  output_key: "brainstormed_ideas"
+---
+apiVersion: adk.poc.com/v1alpha1
+kind: LlmAgent
+metadata:
+  name: paragraph_writer
+spec:
+  modelRef: gemini-flash-focused
+  instruction: |
+    You are a skilled writer. 
+    Using the following bullet points, write a single, coherent paragraph.
+
+    Ideas:
+    {brainstormed_ideas}
+---
+apiVersion: adk.poc.com/v1alpha1
+kind: SequentialAgent
+metadata:
+  name: writing_pipeline
+spec:
+  subAgentRefs:
+    - idea_generator
+    - paragraph_writer

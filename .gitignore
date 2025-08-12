@@ -1,3 +1,7 @@
+# Generated agents
+generated_agent/
+generated_*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
