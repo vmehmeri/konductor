@@ -63,11 +63,8 @@ uv run python -m konductor.cli generate examples/simple_agent_stack.yaml
 # Or specify provider and output directory
 uv run python -m konductor.cli generate -p google_adk -o my_agent examples/simple_agent_stack.yaml
 
-# 2. Activate the virtual environment
-. .venv/bin/activate
-
-# 3. Run the ADK web interface (for Google ADK provider)
-adk web 
+# 2. Run the ADK web interface (for Google ADK provider)
+uv run adk web 
 
 # 4. Interact with your newly built agent!
 ```
@@ -161,10 +158,8 @@ spec:
 
 ## Command Line Options
 
-### New CLI (Recommended)
-
 ```bash
-python -m konductor.cli <command> [options]
+uv run python -m konductor.cli <command> [options]
 
 Commands:
   generate              Generate code from manifest
@@ -177,10 +172,10 @@ Generate Options:
   -o, --output-dir      Directory to save generated code (default: generated_agent)
 
 Examples:
-  python -m konductor.cli generate examples/simple_agent_stack.yaml
-  python -m konductor.cli generate -p google_adk -o my_agent examples/simple_agent_stack.yaml
-  python -m konductor.cli list-providers
-  python -m konductor.cli dependencies -p google_adk
+  uv run python -m konductor.cli generate examples/simple_agent_stack.yaml
+  uv run python -m konductor.cli generate -p google_adk -o my_agent examples/simple_agent_stack.yaml
+  uv run python -m konductor.cli list-providers
+  uv run python -m konductor.cli dependencies -p google_adk
 ```
 
 ## Dependencies
@@ -192,6 +187,92 @@ Examples:
 
 ### Provider-Specific Dependencies
 - **Google ADK**: `google-adk>=1.10.0` - Google Agent Development Kit
+
+### Development Dependencies (Optional)
+```bash
+# Install test dependencies
+uv sync --extra test
+
+# Install all development dependencies (includes black, pylint, isort, mypy, pytest)
+uv sync --extra dev
+```
+
+## Testing
+
+Konductor includes a comprehensive test suite built with pytest.
+
+### Running Tests
+
+```bash
+# Install test dependencies
+uv sync --extra test
+
+# Run all tests
+uv run pytest
+
+# Run with coverage
+uv run pytest --cov=konductor
+
+# Run specific test categories
+uv run pytest -m unit          # Unit tests only
+uv run pytest -m integration   # Integration tests only
+uv run pytest -m "not slow"    # Skip slow tests
+
+# Run tests for specific components
+uv run pytest tests/core/              # Core functionality tests
+uv run pytest tests/providers/         # Provider tests
+uv run pytest tests/test_cli.py        # CLI tests
+```
+
+### Test Structure
+
+```
+tests/
+├── core/                       # Core component tests
+│   ├── test_models.py         # Model validation tests
+│   └── test_parser.py         # Parser functionality tests
+├── providers/                  # Provider-specific tests
+│   └── google_adk/
+│       └── test_generator.py  # Google ADK generator tests
+├── fixtures/                   # Test fixtures and data
+├── test_cli.py                # CLI interface tests
+└── test_integration.py        # End-to-end integration tests
+```
+
+## Code Quality
+
+Konductor uses black for formatting, pylint for linting, and isort for import sorting.
+
+### Running Code Quality Tools
+
+```bash
+# Install development dependencies
+uv sync --extra dev
+
+# Format code with black
+uv run black .
+
+# Sort imports with isort
+uv run isort .
+
+# Lint code with pylint
+uv run pylint konductor/
+
+# Check types with mypy
+uv run mypy konductor/
+
+# Run all quality checks
+uv run black --check . && uv run isort --check-only . && uv run pylint konductor/ && uv run mypy konductor/
+```
+
+### Pre-commit Hook (Optional)
+
+```bash
+# Install code quality tools as a pre-commit hook
+echo "#!/bin/bash
+uv run black --check . && uv run isort --check-only . && uv run pylint konductor/" > .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
 
 ## License
 
@@ -207,7 +288,7 @@ Victor Dantas
 
 ## Roadmap
 
-### Current Focus: Google ADK Provider
+### Current Focus: Google ADK Provider and Core Functionalities
 We are currently focusing on providing the best possible experience for Google ADK users before expanding to other frameworks.
 
 **Google ADK Enhancements:**
@@ -215,25 +296,25 @@ We are currently focusing on providing the best possible experience for Google A
 - [ ] Support for remote, authenticated tools
 - [ ] Support for data kinds: SessionService, MemoryService, etc.
 - [ ] Support for eval kinds: EvalJob, etc.
-- [ ] Enhanced CLI: A dedicated command-line tool (adkctl) with deployment capabilities
+- [ ] Enhanced CLI: A dedicated command-line tool (`konduct`) with deployment capabilities
 - [ ] Configuration validation and error handling, with proper reporting for malformed manifests
 - [ ] Support for creating secrets via CLI (Google Secret Manager)
 - [ ] Support for agent chaining and workflows
-- [ ] Deployment Integration: The CLI could directly call `adk deploy` on the generated code
+- [ ] Deployment Integration: The CLI directly calls `adk deploy` on the generated code (TBD: GCP environment bootstrapping)
+- [ ] Reconciliation engine: The CLI handles deployment idempotently (requires state management and drift detection)
 
 ### Future: Multi-Provider Support
 Once the Google ADK provider is mature, we plan to expand support to other AI agent frameworks:
 
-- [ ] **LangChain Provider**: Support for LangChain agents and tools
+- [ ] **OpenAI Agent Provider**: Support for OpenAI agents and tools
 - [ ] **CrewAI Provider**: Multi-agent orchestration with CrewAI
 - [ ] **AutoGen Provider**: Microsoft AutoGen framework support
-- [ ] **LlamaIndex Provider**: LlamaIndex agents and workflows
 - [ ] **Custom Providers**: Framework for building custom provider implementations
 
 ### Long-term Vision
 - [ ] Universal agent configuration format across all providers
 - [ ] Cross-provider agent composition and workflows
 - [ ] Multi-cloud deployment targets (Google Cloud, Azure, AWS)
-- [ ] Agent marketplace and sharing ecosystem
+
 
 

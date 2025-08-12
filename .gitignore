@@ -80,3 +80,7 @@ __marimo__/
 
 # VS Code
 .DS_Store
+
+# Agents stuff
+.claude/
+CLAUDE.md 

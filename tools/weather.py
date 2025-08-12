@@ -1,5 +1,6 @@
 from typing import Dict
 
+
 def get_weather_report(city: str) -> Dict:
     """
     Fetches the current weather for a given city.
@@ -17,8 +18,14 @@ def get_weather_report(city: str) -> Dict:
     # In a real scenario, this would call a weather API.
     city_lower = city.lower()
     if city_lower == "stockholm":
-        return {"status": "success", "report": "It is currently sunny with a temperature of 18 degrees Celsius in Stockholm."}
+        return {
+            "status": "success",
+            "report": "It is currently sunny with a temperature of 18 degrees Celsius in Stockholm.",
+        }
     elif city_lower == "london":
         return {"status": "success", "report": "It is cloudy with a high chance of rain in London."}
     else:
-        return {"status": "error", "message": f"Sorry, weather information for '{city}' is not available."}
+        return {
+            "status": "error",
+            "message": f"Sorry, weather information for '{city}' is not available.",
+        }
