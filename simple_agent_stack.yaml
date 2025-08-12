@@ -1,4 +1,4 @@
-apiVersion: adk.poc.com/v1alpha1
+apiVersion: adk.google.com/v1alpha1
 kind: LlmModel
 metadata:
   # This name is what the agent will reference.
@@ -7,7 +7,7 @@ spec:
   provider: google
   modelId: "gemini-2.5-flash"
 ---
-apiVersion: adk.poc.com/v1alpha1
+apiVersion: adk.google.com/v1alpha1
 kind: Tool
 metadata:
   name: weather_tool
@@ -22,7 +22,7 @@ spec:
       type: "string"
       description: "The name of the city."
 ---
-apiVersion: adk.poc.com/v1alpha1
+apiVersion: adk.google.com/v1alpha1
 kind: LlmAgent
 metadata:
   name: test_agent

@@ -89,7 +89,7 @@ Konductor uses YAML manifests to define agents and tools. Here's the structure:
 ### Tool Definition
 
 ```yaml
-apiVersion: adk.poc.com/v1alpha1
+apiVersion: adk.google.com/v1alpha1
 kind: Tool
 metadata:
   name: weather-tool
@@ -108,7 +108,7 @@ spec:
 ### Agent Definition
 
 ```yaml
-apiVersion: adk.poc.com/v1alpha1
+apiVersion: adk.google.com/v1alpha1
 kind: LlmAgent
 metadata:
   name: test_agent

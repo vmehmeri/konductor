@@ -1,4 +1,4 @@
-apiVersion: adk.poc.com/v1alpha1
+apiVersion: adk.google.com/v1alpha1
 kind: LlmModel
 metadata:
   name: gemini-flash-creative
@@ -8,7 +8,7 @@ spec:
   parameters:
     temperature: 0.7
 ---
-apiVersion: adk.poc.com/v1alpha1
+apiVersion: adk.google.com/v1alpha1
 kind: LlmModel
 metadata:
   name: gemini-flash-focused
@@ -18,7 +18,7 @@ spec:
   parameters:
     temperature: 0.2
 ---
-apiVersion: adk.poc.com/v1alpha1
+apiVersion: adk.google.com/v1alpha1
 kind: LlmAgent
 metadata:
   name: idea_generator
@@ -29,7 +29,7 @@ spec:
     Given a topic from the user, generate a bulleted list of 3-4 key ideas related to it.
   output_key: "brainstormed_ideas"
 ---
-apiVersion: adk.poc.com/v1alpha1
+apiVersion: adk.google.com/v1alpha1
 kind: LlmAgent
 metadata:
   name: paragraph_writer
@@ -42,7 +42,7 @@ spec:
     Ideas:
     {brainstormed_ideas}
 ---
-apiVersion: adk.poc.com/v1alpha1
+apiVersion: adk.google.com/v1alpha1
 kind: SequentialAgent
 metadata:
   name: writing_pipeline
