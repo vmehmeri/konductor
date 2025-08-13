@@ -123,12 +123,15 @@ spec:
 
 ```yaml
 apiVersion: adk.google.com/v1alpha1
-kind: LlmModel
+kind: Model
 metadata:
   name: gemini_flash_model
 spec:
   provider: google
   modelId: "gemini-2.5-flash"
+  retryOptions:
+    attempts: 2
+    initialDelay: 5
   parameters:
     temperature: 0.7
 ```
@@ -259,7 +262,7 @@ Victor Dantas
 We are currently focusing on providing the best possible experience for Google ADK users before expanding to other frameworks.
 
 **Google ADK Enhancements:**
-- [ ] More agent/tool kinds: Support for LoopAgent, and ToolSet
+- [X] More agent/tool kinds: Support for LoopAgent and ParallelAgent
 - [ ] Support for remote, authenticated tools
 - [ ] Support for data kinds: SessionService, MemoryService, etc.
 - [ ] Support for eval kinds: EvalJob, etc.
@@ -270,7 +273,7 @@ We are currently focusing on providing the best possible experience for Google A
 - [ ] Deployment Integration: The CLI directly calls `adk deploy` on the generated code (TBD: GCP environment bootstrapping)
 - [ ] Reconciliation engine: The CLI handles deployment idempotently (requires state management and drift detection)
 
-### Future: Multi-Provider Support
+### Future: Multi-Provider Support (Not committed)
 Once the Google ADK provider is mature, we plan to expand support to other AI agent frameworks:
 
 - [ ] **OpenAI Agent Provider**: Support for OpenAI agents and tools
@@ -279,9 +282,8 @@ Once the Google ADK provider is mature, we plan to expand support to other AI ag
 - [ ] **Custom Providers**: Framework for building custom provider implementations
 
 ### Long-term Vision
-- [ ] Universal agent configuration format across all providers
-- [ ] Cross-provider agent composition and workflows
-- [ ] Multi-cloud deployment targets (Google Cloud, Azure, AWS)
+- Universal agent configuration format 
+- Advanced reconciliation engine for true GitOps workflows
 
 
 
