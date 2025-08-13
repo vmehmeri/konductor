@@ -10,15 +10,20 @@ import pytest
 
 from konductor.core.models import (
     LlmAgentResource,
+    LoopAgentResource,
     ModelResource,
+    ParallelAgentResource,
     SequentialAgentResource,
     ToolResource,
 )
 from konductor.core.parser import ManifestParser
 from tests.fixtures.test_manifests import (
     COMPLETE_MANIFEST,
+    COMPLETE_MANIFEST_WITH_NEW_AGENTS,
     INVALID_MANIFEST_MISSING_FIELDS,
     INVALID_MANIFEST_UNKNOWN_KIND,
+    LOOP_AGENT_MANIFEST,
+    PARALLEL_AGENT_MANIFEST,
     SEQUENTIAL_AGENT_MANIFEST,
     SIMPLE_AGENT_ONLY_MANIFEST,
     SIMPLE_MODEL_MANIFEST,
@@ -61,6 +66,8 @@ class TestManifestParser:
                 assert len(manifest.models) == 0
                 assert len(manifest.llm_agents) == 0
                 assert len(manifest.sequential_agents) == 0
+                assert len(manifest.loop_agents) == 0
+                assert len(manifest.parallel_agents) == 0
 
                 tool = manifest.tools[0]
                 assert isinstance(tool, ToolResource)
@@ -84,6 +91,8 @@ class TestManifestParser:
                 assert len(manifest.models) == 1
                 assert len(manifest.llm_agents) == 0
                 assert len(manifest.sequential_agents) == 0
+                assert len(manifest.loop_agents) == 0
+                assert len(manifest.parallel_agents) == 0
 
                 model = manifest.models[0]
                 assert isinstance(model, ModelResource)
@@ -107,6 +116,8 @@ class TestManifestParser:
                 assert len(manifest.models) == 0
                 assert len(manifest.llm_agents) == 1
                 assert len(manifest.sequential_agents) == 0
+                assert len(manifest.loop_agents) == 0
+                assert len(manifest.parallel_agents) == 0
 
                 agent = manifest.llm_agents[0]
                 assert isinstance(agent, LlmAgentResource)
@@ -130,11 +141,60 @@ class TestManifestParser:
                 assert len(manifest.models) == 0
                 assert len(manifest.llm_agents) == 0
                 assert len(manifest.sequential_agents) == 1
+                assert len(manifest.loop_agents) == 0
+                assert len(manifest.parallel_agents) == 0
 
                 agent = manifest.sequential_agents[0]
                 assert isinstance(agent, SequentialAgentResource)
                 assert agent.metadata.name == "test_sequential"
                 assert agent.spec.subAgentRefs == ["test_agent"]
+            finally:
+                os.unlink(f.name)
+
+    def test_parse_loop_agent_manifest(self):
+        """Test parsing a loop agent manifest."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write(LOOP_AGENT_MANIFEST)
+            f.flush()
+
+            try:
+                manifest = self.parser.parse_manifest(f.name)
+
+                assert len(manifest.tools) == 0
+                assert len(manifest.models) == 0
+                assert len(manifest.llm_agents) == 0
+                assert len(manifest.sequential_agents) == 0
+                assert len(manifest.loop_agents) == 1
+                assert len(manifest.parallel_agents) == 0
+
+                agent = manifest.loop_agents[0]
+                assert isinstance(agent, LoopAgentResource)
+                assert agent.metadata.name == "test_loop"
+                assert agent.spec.subAgentRefs == ["test_agent"]
+                assert agent.spec.maxIterations == 5
+            finally:
+                os.unlink(f.name)
+
+    def test_parse_parallel_agent_manifest(self):
+        """Test parsing a parallel agent manifest."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write(PARALLEL_AGENT_MANIFEST)
+            f.flush()
+
+            try:
+                manifest = self.parser.parse_manifest(f.name)
+
+                assert len(manifest.tools) == 0
+                assert len(manifest.models) == 0
+                assert len(manifest.llm_agents) == 0
+                assert len(manifest.sequential_agents) == 0
+                assert len(manifest.loop_agents) == 0
+                assert len(manifest.parallel_agents) == 1
+
+                agent = manifest.parallel_agents[0]
+                assert isinstance(agent, ParallelAgentResource)
+                assert agent.metadata.name == "test_parallel"
+                assert agent.spec.subAgentRefs == ["test_agent1", "test_agent2"]
             finally:
                 os.unlink(f.name)
 
@@ -151,12 +211,40 @@ class TestManifestParser:
                 assert len(manifest.models) == 1
                 assert len(manifest.llm_agents) == 1
                 assert len(manifest.sequential_agents) == 1
+                assert len(manifest.loop_agents) == 0
+                assert len(manifest.parallel_agents) == 0
 
                 # Verify each resource type
                 assert manifest.tools[0].metadata.name == "test_tool"
                 assert manifest.models[0].metadata.name == "test_model"
                 assert manifest.llm_agents[0].metadata.name == "test_agent"
                 assert manifest.sequential_agents[0].metadata.name == "test_sequential"
+            finally:
+                os.unlink(f.name)
+
+    def test_parse_complete_manifest_with_new_agents(self):
+        """Test parsing a complete manifest with all agent types."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write(COMPLETE_MANIFEST_WITH_NEW_AGENTS)
+            f.flush()
+
+            try:
+                manifest = self.parser.parse_manifest(f.name)
+
+                assert len(manifest.tools) == 1
+                assert len(manifest.models) == 1
+                assert len(manifest.llm_agents) == 1
+                assert len(manifest.sequential_agents) == 1
+                assert len(manifest.loop_agents) == 1
+                assert len(manifest.parallel_agents) == 1
+
+                # Verify each resource type
+                assert manifest.tools[0].metadata.name == "test_tool"
+                assert manifest.models[0].metadata.name == "test_model"
+                assert manifest.llm_agents[0].metadata.name == "test_agent"
+                assert manifest.sequential_agents[0].metadata.name == "test_sequential"
+                assert manifest.loop_agents[0].metadata.name == "test_loop"
+                assert manifest.parallel_agents[0].metadata.name == "test_parallel"
             finally:
                 os.unlink(f.name)
 
@@ -180,6 +268,8 @@ class TestManifestParser:
                     assert len(manifest.models) == 0
                     assert len(manifest.llm_agents) == 0
                     assert len(manifest.sequential_agents) == 0
+                    assert len(manifest.loop_agents) == 0
+                    assert len(manifest.parallel_agents) == 0
             finally:
                 os.unlink(f.name)
 
@@ -316,6 +406,54 @@ class TestManifestValidation:
         assert "unknown model 'test_model'" in error_text
         assert "unknown tool 'test_tool'" in error_text
 
+    def test_validate_loop_agent_references(self):
+        """Test validation of LoopAgent references."""
+        from konductor.core.models import ParsedManifest
+
+        # Create a loop agent that references non-existent sub-agents
+        loop_agent_data = {
+            "apiVersion": "adk.google.com/v1alpha1",
+            "kind": "LoopAgent",
+            "metadata": {"name": "test_loop"},
+            "spec": {
+                "subAgentRefs": ["nonexistent_agent"],
+                "maxIterations": 3,
+            },
+        }
+
+        manifest = ParsedManifest(
+            loop_agents=[LoopAgentResource(**loop_agent_data)],
+        )
+
+        errors = self.parser.validate_manifest(manifest)
+        assert len(errors) == 1
+        error_text = " ".join(errors)
+        assert "unknown sub-agent 'nonexistent_agent'" in error_text
+
+    def test_validate_parallel_agent_references(self):
+        """Test validation of ParallelAgent references."""
+        from konductor.core.models import ParsedManifest
+
+        # Create a parallel agent that references non-existent sub-agents
+        parallel_agent_data = {
+            "apiVersion": "adk.google.com/v1alpha1",
+            "kind": "ParallelAgent",
+            "metadata": {"name": "test_parallel"},
+            "spec": {
+                "subAgentRefs": ["nonexistent_agent1", "nonexistent_agent2"],
+            },
+        }
+
+        manifest = ParsedManifest(
+            parallel_agents=[ParallelAgentResource(**parallel_agent_data)],
+        )
+
+        errors = self.parser.validate_manifest(manifest)
+        assert len(errors) == 2
+        error_text = " ".join(errors)
+        assert "unknown sub-agent 'nonexistent_agent1'" in error_text
+        assert "unknown sub-agent 'nonexistent_agent2'" in error_text
+
 
 class TestRootAgentIdentification:
     """Test root agent identification functionality."""
@@ -402,3 +540,107 @@ class TestRootAgentIdentification:
 
         with pytest.raises(ValueError, match="Could not determine a root agent"):
             self.parser.find_root_agents(manifest)
+
+    def test_find_root_agents_with_loop_agent(self):
+        """Test finding root agent with loop agent."""
+        llm_agent_data = {
+            "apiVersion": "adk.google.com/v1alpha1",
+            "kind": "LlmAgent",
+            "metadata": {"name": "sub-agent"},
+            "spec": {"modelRef": "test_model", "instruction": "You are a sub agent"},
+        }
+
+        loop_agent_data = {
+            "apiVersion": "adk.google.com/v1alpha1",
+            "kind": "LoopAgent",
+            "metadata": {"name": "root-loop"},
+            "spec": {"subAgentRefs": ["sub-agent"], "maxIterations": 3},
+        }
+
+        from konductor.core.models import ParsedManifest
+
+        manifest = ParsedManifest(
+            llm_agents=[LlmAgentResource(**llm_agent_data)],
+            loop_agents=[LoopAgentResource(**loop_agent_data)],
+        )
+
+        root_agents = self.parser.find_root_agents(manifest)
+        assert len(root_agents) == 1
+        assert root_agents[0] == "root-loop"
+
+    def test_find_root_agents_with_parallel_agent(self):
+        """Test finding root agent with parallel agent."""
+        llm_agent1_data = {
+            "apiVersion": "adk.google.com/v1alpha1",
+            "kind": "LlmAgent",
+            "metadata": {"name": "sub-agent-1"},
+            "spec": {"modelRef": "test_model", "instruction": "You are sub agent 1"},
+        }
+
+        llm_agent2_data = {
+            "apiVersion": "adk.google.com/v1alpha1",
+            "kind": "LlmAgent",
+            "metadata": {"name": "sub-agent-2"},
+            "spec": {"modelRef": "test_model", "instruction": "You are sub agent 2"},
+        }
+
+        parallel_agent_data = {
+            "apiVersion": "adk.google.com/v1alpha1",
+            "kind": "ParallelAgent",
+            "metadata": {"name": "root-parallel"},
+            "spec": {"subAgentRefs": ["sub-agent-1", "sub-agent-2"]},
+        }
+
+        from konductor.core.models import ParsedManifest
+
+        manifest = ParsedManifest(
+            llm_agents=[LlmAgentResource(**llm_agent1_data), LlmAgentResource(**llm_agent2_data)],
+            parallel_agents=[ParallelAgentResource(**parallel_agent_data)],
+        )
+
+        root_agents = self.parser.find_root_agents(manifest)
+        assert len(root_agents) == 1
+        assert root_agents[0] == "root-parallel"
+
+    def test_find_root_agents_complex_hierarchy(self):
+        """Test finding root agent with complex hierarchy involving all agent types."""
+        llm_agent_data = {
+            "apiVersion": "adk.google.com/v1alpha1",
+            "kind": "LlmAgent",
+            "metadata": {"name": "base-agent"},
+            "spec": {"modelRef": "test_model", "instruction": "You are a base agent"},
+        }
+
+        loop_agent_data = {
+            "apiVersion": "adk.google.com/v1alpha1",
+            "kind": "LoopAgent",
+            "metadata": {"name": "loop-processor"},
+            "spec": {"subAgentRefs": ["base-agent"], "maxIterations": 3},
+        }
+
+        parallel_agent_data = {
+            "apiVersion": "adk.google.com/v1alpha1",
+            "kind": "ParallelAgent",
+            "metadata": {"name": "parallel-processor"},
+            "spec": {"subAgentRefs": ["base-agent"]},
+        }
+
+        seq_agent_data = {
+            "apiVersion": "adk.google.com/v1alpha1",
+            "kind": "SequentialAgent",
+            "metadata": {"name": "root-orchestrator"},
+            "spec": {"subAgentRefs": ["loop-processor", "parallel-processor"]},
+        }
+
+        from konductor.core.models import ParsedManifest
+
+        manifest = ParsedManifest(
+            llm_agents=[LlmAgentResource(**llm_agent_data)],
+            loop_agents=[LoopAgentResource(**loop_agent_data)],
+            parallel_agents=[ParallelAgentResource(**parallel_agent_data)],
+            sequential_agents=[SequentialAgentResource(**seq_agent_data)],
+        )
+
+        root_agents = self.parser.find_root_agents(manifest)
+        assert len(root_agents) == 1
+        assert root_agents[0] == "root-orchestrator"

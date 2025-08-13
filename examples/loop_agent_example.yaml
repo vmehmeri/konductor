@@ -1,0 +1,127 @@
+---
+apiVersion: adk.google.com/v1alpha1
+kind: Model
+metadata:
+  name: gemini-flash
+spec:
+  provider: google
+  modelId: gemini-2.0-flash-exp
+  parameters:
+    temperature: 0.7
+    max_output_tokens: 1000
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: Tool
+metadata:
+  name: image-generator
+spec:
+  type: pythonFunction
+  description: Generates an image based on a text prompt
+  source:
+    file: tools/image_tools.py
+    functionName: generate_image
+  parameters:
+    - name: prompt
+      type: str
+      description: The text prompt to generate an image from
+      required: true
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: Tool
+metadata:
+  name: count-objects
+spec:
+  type: pythonFunction
+  description: Counts specific objects in an image
+  source:
+    file: tools/image_tools.py
+    functionName: count_objects
+  parameters:
+    - name: image_url
+      type: str
+      description: URL of the image to analyze
+      required: true
+    - name: object_type
+      type: str
+      description: Type of object to count (e.g., "banana", "apple")
+      required: true
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: Tool
+metadata:
+  name: exit-loop
+spec:
+  type: pythonFunction
+  description: Exit the loop when the image generation quality is satisfactory
+  source:
+    file: tools/loop_control.py
+    functionName: exit_loop
+  parameters: []
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: LlmAgent
+metadata:
+  name: image_generator_agent
+spec:
+  modelRef: gemini-flash
+  instruction: |
+    You are an image generator. Generate images based on user requests.
+    If the user wants a specific number of objects, create a detailed prompt
+    that emphasizes the exact count.
+  toolRefs:
+    - image-generator
+  output_key: generated_image
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: LlmAgent
+metadata:
+  name: object_counter_agent
+spec:
+  modelRef: gemini-flash
+  instruction: |
+    You are an object counter. Count specific objects in images.
+    Return the exact count as a number.
+  toolRefs:
+    - count-objects
+  output_key: object_count
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: LlmAgent
+metadata:
+  name: quality_checker_agent
+spec:
+  modelRef: gemini-flash
+  instruction: |
+    You are a quality checker. Review the image generation results and object count.
+    
+    **Task:**
+    Compare the generated_image details with the object_count results.
+    
+    IF the object count matches the user's request and the image quality is satisfactory:
+    You MUST call the 'exit_loop' function. Do not output any text.
+    
+    ELSE (if the count is wrong or quality needs improvement):
+    Output "RETRY" with specific suggestions for improvement. Do not call exit_loop.
+    
+    Either call the exit_loop function OR output retry suggestions - never both.
+  toolRefs:
+    - exit-loop
+  output_key: quality_status
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: LoopAgent
+metadata:
+  name: iterative_image_generator
+spec:
+  subAgentRefs:
+    - image_generator_agent
+    - object_counter_agent
+    - quality_checker_agent
+  maxIterations: 5

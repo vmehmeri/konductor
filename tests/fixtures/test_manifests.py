@@ -61,6 +61,28 @@ spec:
     - test_agent
 """
 
+LOOP_AGENT_MANIFEST = """
+apiVersion: adk.google.com/v1alpha1
+kind: LoopAgent
+metadata:
+  name: test_loop
+spec:
+  subAgentRefs:
+    - test_agent
+  maxIterations: 5
+"""
+
+PARALLEL_AGENT_MANIFEST = """
+apiVersion: adk.google.com/v1alpha1
+kind: ParallelAgent
+metadata:
+  name: test_parallel
+spec:
+  subAgentRefs:
+    - test_agent1
+    - test_agent2
+"""
+
 COMPLETE_MANIFEST = f"""
 {SIMPLE_MODEL_MANIFEST}
 ---
@@ -69,6 +91,20 @@ COMPLETE_MANIFEST = f"""
 {SIMPLE_AGENT_ONLY_MANIFEST}
 ---
 {SEQUENTIAL_AGENT_MANIFEST}
+"""
+
+COMPLETE_MANIFEST_WITH_NEW_AGENTS = f"""
+{SIMPLE_MODEL_MANIFEST}
+---
+{SIMPLE_TOOL_MANIFEST}
+---
+{SIMPLE_AGENT_ONLY_MANIFEST}
+---
+{SEQUENTIAL_AGENT_MANIFEST}
+---
+{LOOP_AGENT_MANIFEST}
+---
+{PARALLEL_AGENT_MANIFEST}
 """
 
 INVALID_MANIFEST_MISSING_FIELDS = """

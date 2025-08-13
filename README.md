@@ -40,7 +40,7 @@ End goal: Universal agent configuration that can target multiple frameworks and 
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/konductor.git
+git clone https://github.com/vmehmeri/konductor.git
 cd konductor
 ```
 
@@ -239,41 +239,6 @@ tests/
 ├── fixtures/                   # Test fixtures and data
 ├── test_cli.py                # CLI interface tests
 └── test_integration.py        # End-to-end integration tests
-```
-
-## Code Quality
-
-Konductor uses black for formatting, pylint for linting, and isort for import sorting.
-
-### Running Code Quality Tools
-
-```bash
-# Install development dependencies
-uv sync --extra dev
-
-# Format code with black
-uv run black .
-
-# Sort imports with isort
-uv run isort .
-
-# Lint code with pylint
-uv run pylint konductor/
-
-# Check types with mypy
-uv run mypy konductor/
-
-# Run all quality checks
-uv run black --check . && uv run isort --check-only . && uv run pylint konductor/ && uv run mypy konductor/
-```
-
-### Pre-commit Hook (Optional)
-
-```bash
-# Install code quality tools as a pre-commit hook
-echo "#!/bin/bash
-uv run black --check . && uv run isort --check-only . && uv run pylint konductor/" > .git/hooks/pre-commit
-chmod +x .git/hooks/pre-commit
 ```
 
 ## License

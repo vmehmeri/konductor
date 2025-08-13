@@ -9,7 +9,9 @@ import yaml
 from .models import (
     RESOURCE_REGISTRY,
     LlmAgentResource,
+    LoopAgentResource,
     ModelResource,
+    ParallelAgentResource,
     ParsedManifest,
     Resource,
     SequentialAgentResource,
@@ -33,6 +35,8 @@ class ManifestParser:
         models = []
         llm_agents = []
         sequential_agents = []
+        loop_agents = []
+        parallel_agents = []
 
         with open(file_path, "r") as f:
             docs = yaml.safe_load_all(f)
@@ -57,14 +61,24 @@ class ManifestParser:
                     llm_agents.append(resource)
                 elif isinstance(resource, SequentialAgentResource):
                     sequential_agents.append(resource)
+                elif isinstance(resource, LoopAgentResource):
+                    loop_agents.append(resource)
+                elif isinstance(resource, ParallelAgentResource):
+                    parallel_agents.append(resource)
 
         manifest = ParsedManifest(
-            tools=tools, models=models, llm_agents=llm_agents, sequential_agents=sequential_agents
+            tools=tools,
+            models=models,
+            llm_agents=llm_agents,
+            sequential_agents=sequential_agents,
+            loop_agents=loop_agents,
+            parallel_agents=parallel_agents,
         )
 
         print(
             f"Parsed {len(tools)} tool(s), {len(models)} model(s), "
-            f"{len(llm_agents)} LlmAgent(s), {len(sequential_agents)} SequentialAgent(s)."
+            f"{len(llm_agents)} LlmAgent(s), {len(sequential_agents)} SequentialAgent(s), "
+            f"{len(loop_agents)} LoopAgent(s), {len(parallel_agents)} ParallelAgent(s)."
         )
 
         return manifest
@@ -93,6 +107,8 @@ class ManifestParser:
 
         # Check that all referenced sub-agents exist
         agent_names = {agent.metadata.name for agent in manifest.get_all_agents()}
+
+        # Validate SequentialAgent references
         for seq_agent in manifest.sequential_agents:
             for sub_agent_ref in seq_agent.spec.subAgentRefs:
                 if sub_agent_ref not in agent_names:
@@ -100,13 +116,35 @@ class ManifestParser:
                         f"SequentialAgent '{seq_agent.metadata.name}' references unknown sub-agent '{sub_agent_ref}'"
                     )
 
+        # Validate LoopAgent references
+        for loop_agent in manifest.loop_agents:
+            for sub_agent_ref in loop_agent.spec.subAgentRefs:
+                if sub_agent_ref not in agent_names:
+                    errors.append(
+                        f"LoopAgent '{loop_agent.metadata.name}' references unknown sub-agent '{sub_agent_ref}'"
+                    )
+
+        # Validate ParallelAgent references
+        for parallel_agent in manifest.parallel_agents:
+            for sub_agent_ref in parallel_agent.spec.subAgentRefs:
+                if sub_agent_ref not in agent_names:
+                    errors.append(
+                        f"ParallelAgent '{parallel_agent.metadata.name}' references unknown sub-agent '{sub_agent_ref}'"
+                    )
+
         return errors
 
     def find_root_agents(self, manifest: ParsedManifest) -> List[str]:
-        """Find agents that are not referenced by any SequentialAgent (potential root agents)."""
+        """Find agents that are not referenced by any workflow agent (potential root agents)."""
         all_sub_agent_refs = set()
+
+        # Collect sub-agent references from all workflow agents
         for seq_agent in manifest.sequential_agents:
             all_sub_agent_refs.update(seq_agent.spec.subAgentRefs)
+        for loop_agent in manifest.loop_agents:
+            all_sub_agent_refs.update(loop_agent.spec.subAgentRefs)
+        for parallel_agent in manifest.parallel_agents:
+            all_sub_agent_refs.update(parallel_agent.spec.subAgentRefs)
 
         root_agents = [
             agent.metadata.name

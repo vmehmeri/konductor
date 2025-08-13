@@ -1,0 +1,147 @@
+---
+apiVersion: adk.google.com/v1alpha1
+kind: Model
+metadata:
+  name: gemini-flash
+spec:
+  provider: google
+  modelId: gemini-2.0-flash-exp
+  parameters:
+    temperature: 0.7
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: Model
+metadata:
+  name: gemini-pro
+spec:
+  provider: google
+  modelId: gemini-1.5-pro
+  parameters:
+    temperature: 0.3
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: Tool
+metadata:
+  name: web-search
+spec:
+  type: pythonFunction
+  description: Search the web for information
+  source:
+    file: tools/search_tools.py
+    functionName: web_search
+  parameters:
+    - name: query
+      type: str
+      description: Search query
+      required: true
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: Tool
+metadata:
+  name: sentiment-analysis
+spec:
+  type: pythonFunction
+  description: Analyze sentiment of text
+  source:
+    file: tools/analysis_tools.py
+    functionName: analyze_sentiment
+  parameters:
+    - name: text
+      type: str
+      description: Text to analyze
+      required: true
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: Tool
+metadata:
+  name: fact-checker
+spec:
+  type: pythonFunction
+  description: Check facts against reliable sources
+  source:
+    file: tools/verification_tools.py
+    functionName: check_facts
+  parameters:
+    - name: claim
+      type: str
+      description: Claim to verify
+      required: true
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: LlmAgent
+metadata:
+  name: research_agent
+spec:
+  modelRef: gemini-flash
+  instruction: |
+    You are a research specialist. Search for comprehensive information
+    on the given topic and provide detailed findings.
+  toolRefs:
+    - web-search
+  output_key: research_findings
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: LlmAgent
+metadata:
+  name: sentiment_agent
+spec:
+  modelRef: gemini-flash
+  instruction: |
+    You are a sentiment analysis expert. Analyze the emotional tone
+    and sentiment of the provided content.
+  toolRefs:
+    - sentiment-analysis
+  output_key: sentiment_analysis
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: LlmAgent
+metadata:
+  name: fact_check_agent
+spec:
+  modelRef: gemini-pro
+  instruction: |
+    You are a fact-checking specialist. Verify claims and statements
+    against reliable sources and provide accuracy assessments.
+  toolRefs:
+    - fact-checker
+  output_key: fact_verification
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: ParallelAgent
+metadata:
+  name: content_analysis_team
+spec:
+  subAgentRefs:
+    - research_agent
+    - sentiment_agent
+    - fact_check_agent
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: LlmAgent
+metadata:
+  name: synthesis_agent
+spec:
+  modelRef: gemini-pro
+  instruction: |
+    You are a synthesis expert. Combine the research findings, sentiment analysis,
+    and fact-checking results into a comprehensive report.
+  output_key: final_report
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: SequentialAgent
+metadata:
+  name: comprehensive_content_analyzer
+spec:
+  subAgentRefs:
+    - content_analysis_team
+    - synthesis_agent

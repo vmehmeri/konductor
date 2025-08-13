@@ -352,13 +352,38 @@ All contributions go through code review:
 
 ## 🔄 Development Workflow Tips
 
-### Pre-commit Hook (Recommended)
+### Code Quality
 
-Set up automatic quality checks:
+Konductor uses black for formatting, pylint for linting, and isort for import sorting.
+
+### Running Code Quality Tools
 
 ```bash
-echo '#!/bin/bash
-uv run black --check . && uv run isort --check-only . && uv run pylint konductor/' > .git/hooks/pre-commit
+# Install development dependencies
+uv sync --extra dev
+
+# Format code with black
+uv run black .
+
+# Sort imports with isort
+uv run isort .
+
+# Lint code with pylint (score should be >9)
+uv run pylint konductor/
+
+# Check types with mypy
+uv run mypy konductor/
+
+# Run all quality checks
+uv run black --check . && uv run isort --check-only . && uv run pylint konductor/ && uv run mypy konductor/
+```
+
+### Pre-commit Hook (Optional, but Recommended)
+
+```bash
+# Install code quality tools as a pre-commit hook
+echo "#!/bin/bash
+uv run black --check . && uv run isort --check-only . && uv run pylint konductor/" > .git/hooks/pre-commit
 chmod +x .git/hooks/pre-commit
 ```
 

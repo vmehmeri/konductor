@@ -3,11 +3,21 @@ Google ADK specific code generator.
 """
 
 import os
-from typing import Any, Dict, List
+from collections import defaultdict, deque
+from typing import Any, Dict, List, Union
 
 from jinja2 import Environment, FileSystemLoader
 
-from ...core.models import ParsedManifest
+from ...core.models import (
+    LlmAgentResource,
+    LoopAgentResource,
+    ParallelAgentResource,
+    ParsedManifest,
+    SequentialAgentResource,
+)
+
+# Type alias for all agent types
+AgentResource = Union[LlmAgentResource, SequentialAgentResource, LoopAgentResource, ParallelAgentResource]
 from ...core.parser import ManifestParser
 from ..base import CodeGenerator
 
@@ -19,6 +29,77 @@ class GoogleAdkGenerator(CodeGenerator):
         super().__init__("google_adk")
         self.templates_dir = os.path.join(os.path.dirname(__file__), "templates")
         self.env = Environment(loader=FileSystemLoader(self.templates_dir))
+
+    def _topological_sort_agents(self, manifest: ParsedManifest) -> Dict[str, List]:
+        """Sort agents topologically based on their dependencies."""
+        # Create a mapping from agent name to agent object
+        all_agents: Dict[str, AgentResource] = {}
+        for llm_agent in manifest.llm_agents:
+            all_agents[llm_agent.metadata.name] = llm_agent
+        for seq_agent in manifest.sequential_agents:
+            all_agents[seq_agent.metadata.name] = seq_agent
+        for loop_agent in manifest.loop_agents:
+            all_agents[loop_agent.metadata.name] = loop_agent
+        for parallel_agent in manifest.parallel_agents:
+            all_agents[parallel_agent.metadata.name] = parallel_agent
+
+        # Build dependency graph
+        graph = defaultdict(list)
+        in_degree = defaultdict(int)
+
+        # Initialize all agents with in-degree 0
+        for agent_name in all_agents:
+            in_degree[agent_name] = 0
+
+        # Build the dependency graph (agent -> depends on sub_agents)
+        for agent_name, agent in all_agents.items():
+            if hasattr(agent.spec, "subAgentRefs"):
+                for sub_agent_ref in agent.spec.subAgentRefs:
+                    if sub_agent_ref in all_agents:
+                        graph[sub_agent_ref].append(agent_name)
+                        in_degree[agent_name] += 1
+
+        # Topological sort using Kahn's algorithm
+        queue = deque([agent for agent in all_agents if in_degree[agent] == 0])
+        sorted_agents = []
+
+        while queue:
+            current = queue.popleft()
+            sorted_agents.append(current)
+
+            for neighbor in graph[current]:
+                in_degree[neighbor] -= 1
+                if in_degree[neighbor] == 0:
+                    queue.append(neighbor)
+
+        # Check for cycles
+        if len(sorted_agents) != len(all_agents):
+            raise ValueError("Circular dependency detected in agent references")
+
+        # Group sorted agents by type
+        sorted_llm_agents: List[LlmAgentResource] = []
+        sorted_sequential_agents: List[SequentialAgentResource] = []
+        sorted_loop_agents: List[LoopAgentResource] = []
+        sorted_parallel_agents: List[ParallelAgentResource] = []
+
+        for agent_name in sorted_agents:
+            agent = all_agents[agent_name]
+            if isinstance(agent, LlmAgentResource):
+                sorted_llm_agents.append(agent)
+            elif isinstance(agent, SequentialAgentResource):
+                sorted_sequential_agents.append(agent)
+            elif isinstance(agent, LoopAgentResource):
+                sorted_loop_agents.append(agent)
+            elif isinstance(agent, ParallelAgentResource):
+                sorted_parallel_agents.append(agent)
+
+        return {
+            "llm_agents": sorted_llm_agents,
+            "sequential_agents": sorted_sequential_agents,
+            "loop_agents": sorted_loop_agents,
+            "parallel_agents": sorted_parallel_agents,
+            "all_agents_sorted": [all_agents[name] for name in sorted_agents],
+        }
 
     def generate_code(
         self, manifest: ParsedManifest, output_dir: str, **kwargs: Any
@@ -43,13 +124,19 @@ class GoogleAdkGenerator(CodeGenerator):
         generated_files[tools_path] = tools_content
         print(f"Generated {tools_path}")
 
+        # Sort agents topologically to handle dependencies
+        sorted_agents = self._topological_sort_agents(manifest)
+
         # Generate agent.py
         agent_template = self.env.get_template("agent.py.j2")
         agent_content = agent_template.render(
             tools=manifest.tools,
             models=manifest.models,
-            llm_agents=manifest.llm_agents,
-            sequential_agents=manifest.sequential_agents,
+            llm_agents=sorted_agents["llm_agents"],
+            sequential_agents=sorted_agents["sequential_agents"],
+            loop_agents=sorted_agents["loop_agents"],
+            parallel_agents=sorted_agents["parallel_agents"],
+            all_agents_sorted=sorted_agents["all_agents_sorted"],
             root_agent_name=root_agent_name,
         )
         agent_path = os.path.join(output_dir, "agent.py")

@@ -8,8 +8,10 @@ from pydantic import ValidationError
 from konductor.core.models import (
     RESOURCE_REGISTRY,
     LlmAgentResource,
+    LoopAgentResource,
     Metadata,
     ModelResource,
+    ParallelAgentResource,
     ParsedManifest,
     SequentialAgentResource,
     ToolResource,
@@ -230,6 +232,104 @@ class TestSequentialAgentResource:
         assert "subAgentRefs" in str(exc_info.value)
 
 
+class TestLoopAgentResource:
+    """Test the LoopAgentResource model."""
+
+    def test_valid_loop_agent_resource(self):
+        """Test creating a valid loop agent resource."""
+        agent_data = {
+            "apiVersion": "adk.google.com/v1alpha1",
+            "kind": "LoopAgent",
+            "metadata": {"name": "test_loop"},
+            "spec": {
+                "subAgentRefs": ["test_agent1", "test_agent2"],
+                "maxIterations": 5,
+            },
+        }
+
+        agent = LoopAgentResource(**agent_data)
+        assert agent.metadata.name == "test_loop"
+        assert agent.spec.subAgentRefs == ["test_agent1", "test_agent2"]
+        assert agent.spec.maxIterations == 5
+
+    def test_loop_agent_with_defaults(self):
+        """Test loop agent with default values."""
+        agent_data = {
+            "apiVersion": "adk.google.com/v1alpha1",
+            "kind": "LoopAgent",
+            "metadata": {"name": "test_loop"},
+            "spec": {
+                "subAgentRefs": ["test_agent"]
+                # maxIterations is optional
+            },
+        }
+
+        agent = LoopAgentResource(**agent_data)
+        assert agent.spec.maxIterations is None
+
+    def test_loop_agent_missing_sub_agent_refs(self):
+        """Test validation error for missing subAgentRefs."""
+        agent_data = {
+            "apiVersion": "adk.google.com/v1alpha1",
+            "kind": "LoopAgent",
+            "metadata": {"name": "test_loop"},
+            "spec": {
+                "maxIterations": 3
+                # Missing subAgentRefs
+            },
+        }
+
+        with pytest.raises(ValidationError) as exc_info:
+            LoopAgentResource(**agent_data)
+        assert "subAgentRefs" in str(exc_info.value)
+
+
+class TestParallelAgentResource:
+    """Test the ParallelAgentResource model."""
+
+    def test_valid_parallel_agent_resource(self):
+        """Test creating a valid parallel agent resource."""
+        agent_data = {
+            "apiVersion": "adk.google.com/v1alpha1",
+            "kind": "ParallelAgent",
+            "metadata": {"name": "test_parallel"},
+            "spec": {
+                "subAgentRefs": ["test_agent1", "test_agent2", "test_agent3"],
+            },
+        }
+
+        agent = ParallelAgentResource(**agent_data)
+        assert agent.metadata.name == "test_parallel"
+        assert agent.spec.subAgentRefs == ["test_agent1", "test_agent2", "test_agent3"]
+
+    def test_parallel_agent_with_defaults(self):
+        """Test parallel agent with default values."""
+        agent_data = {
+            "apiVersion": "adk.google.com/v1alpha1",
+            "kind": "ParallelAgent",
+            "metadata": {"name": "test_parallel"},
+            "spec": {"subAgentRefs": ["test_agent"]},
+        }
+
+        agent = ParallelAgentResource(**agent_data)
+        assert agent.spec.subAgentRefs == ["test_agent"]
+
+    def test_parallel_agent_missing_sub_agent_refs(self):
+        """Test validation error for missing subAgentRefs."""
+        agent_data = {
+            "apiVersion": "adk.google.com/v1alpha1",
+            "kind": "ParallelAgent",
+            "metadata": {"name": "test_parallel"},
+            "spec": {
+                # Missing subAgentRefs
+            },
+        }
+
+        with pytest.raises(ValidationError) as exc_info:
+            ParallelAgentResource(**agent_data)
+        assert "subAgentRefs" in str(exc_info.value)
+
+
 class TestParsedManifest:
     """Test the ParsedManifest model."""
 
@@ -240,6 +340,8 @@ class TestParsedManifest:
         assert len(manifest.models) == 0
         assert len(manifest.llm_agents) == 0
         assert len(manifest.sequential_agents) == 0
+        assert len(manifest.loop_agents) == 0
+        assert len(manifest.parallel_agents) == 0
 
     def test_get_all_agents(self):
         """Test getting all agents from manifest."""
@@ -257,15 +359,33 @@ class TestParsedManifest:
             "spec": {"subAgentRefs": ["llm-agent"]},
         }
 
+        loop_agent_data = {
+            "apiVersion": "adk.google.com/v1alpha1",
+            "kind": "LoopAgent",
+            "metadata": {"name": "loop-agent"},
+            "spec": {"subAgentRefs": ["llm-agent"], "maxIterations": 3},
+        }
+
+        parallel_agent_data = {
+            "apiVersion": "adk.google.com/v1alpha1",
+            "kind": "ParallelAgent",
+            "metadata": {"name": "parallel-agent"},
+            "spec": {"subAgentRefs": ["llm-agent"]},
+        }
+
         manifest = ParsedManifest(
             llm_agents=[LlmAgentResource(**llm_agent_data)],
             sequential_agents=[SequentialAgentResource(**seq_agent_data)],
+            loop_agents=[LoopAgentResource(**loop_agent_data)],
+            parallel_agents=[ParallelAgentResource(**parallel_agent_data)],
         )
 
         all_agents = manifest.get_all_agents()
-        assert len(all_agents) == 2
+        assert len(all_agents) == 4
         assert all_agents[0].metadata.name == "llm-agent"
         assert all_agents[1].metadata.name == "seq-agent"
+        assert all_agents[2].metadata.name == "loop-agent"
+        assert all_agents[3].metadata.name == "parallel-agent"
 
     def test_find_agent_by_name(self):
         """Test finding agent by name."""
@@ -276,12 +396,31 @@ class TestParsedManifest:
             "spec": {"modelRef": "model1", "instruction": "Test"},
         }
 
-        manifest = ParsedManifest(llm_agents=[LlmAgentResource(**llm_agent_data)])
+        loop_agent_data = {
+            "apiVersion": "adk.google.com/v1alpha1",
+            "kind": "LoopAgent",
+            "metadata": {"name": "test_loop_agent"},
+            "spec": {"subAgentRefs": ["test_agent"], "maxIterations": 3},
+        }
 
+        manifest = ParsedManifest(
+            llm_agents=[LlmAgentResource(**llm_agent_data)],
+            loop_agents=[LoopAgentResource(**loop_agent_data)],
+        )
+
+        # Test finding LLM agent
         found_agent = manifest.find_agent_by_name("test_agent")
         assert found_agent is not None
         assert found_agent.metadata.name == "test_agent"
+        assert isinstance(found_agent, LlmAgentResource)
 
+        # Test finding Loop agent
+        found_loop_agent = manifest.find_agent_by_name("test_loop_agent")
+        assert found_loop_agent is not None
+        assert found_loop_agent.metadata.name == "test_loop_agent"
+        assert isinstance(found_loop_agent, LoopAgentResource)
+
+        # Test not found
         not_found = manifest.find_agent_by_name("nonexistent")
         assert not_found is None
 
@@ -291,7 +430,15 @@ class TestResourceRegistry:
 
     def test_resource_registry_contents(self):
         """Test that all expected resource types are registered."""
-        expected_kinds = {"Tool", "Model", "LlmModel", "LlmAgent", "SequentialAgent"}
+        expected_kinds = {
+            "Tool",
+            "Model",
+            "LlmModel",
+            "LlmAgent",
+            "SequentialAgent",
+            "LoopAgent",
+            "ParallelAgent",
+        }
 
         assert set(RESOURCE_REGISTRY.keys()) == expected_kinds
 
@@ -301,3 +448,5 @@ class TestResourceRegistry:
         assert RESOURCE_REGISTRY["LlmModel"] == ModelResource  # Backward compatibility
         assert RESOURCE_REGISTRY["LlmAgent"] == LlmAgentResource
         assert RESOURCE_REGISTRY["SequentialAgent"] == SequentialAgentResource
+        assert RESOURCE_REGISTRY["LoopAgent"] == LoopAgentResource
+        assert RESOURCE_REGISTRY["ParallelAgent"] == ParallelAgentResource

@@ -116,6 +116,33 @@ class SequentialAgentResource(Resource):
     spec: SequentialAgentSpec
 
 
+class LoopAgentSpec(ResourceSpec):
+    """Specification for loop agent resources."""
+
+    subAgentRefs: List[str]
+    maxIterations: Optional[int] = None
+
+
+class LoopAgentResource(Resource):
+    """Loop agent resource definition."""
+
+    kind: str = "LoopAgent"
+    spec: LoopAgentSpec
+
+
+class ParallelAgentSpec(ResourceSpec):
+    """Specification for parallel agent resources."""
+
+    subAgentRefs: List[str]
+
+
+class ParallelAgentResource(Resource):
+    """Parallel agent resource definition."""
+
+    kind: str = "ParallelAgent"
+    spec: ParallelAgentSpec
+
+
 # Registry of known resource types
 RESOURCE_REGISTRY: Dict[str, Type[Resource]] = {
     "Tool": ToolResource,
@@ -123,6 +150,8 @@ RESOURCE_REGISTRY: Dict[str, Type[Resource]] = {
     "LlmModel": ModelResource,  # Backward compatibility
     "LlmAgent": LlmAgentResource,
     "SequentialAgent": SequentialAgentResource,
+    "LoopAgent": LoopAgentResource,
+    "ParallelAgent": ParallelAgentResource,
 }
 
 
@@ -133,14 +162,22 @@ class ParsedManifest(BaseModel):
     models: List[ModelResource] = Field(default_factory=list)
     llm_agents: List[LlmAgentResource] = Field(default_factory=list)
     sequential_agents: List[SequentialAgentResource] = Field(default_factory=list)
+    loop_agents: List[LoopAgentResource] = Field(default_factory=list)
+    parallel_agents: List[ParallelAgentResource] = Field(default_factory=list)
 
-    def get_all_agents(self) -> List[Union[LlmAgentResource, SequentialAgentResource]]:
+    def get_all_agents(
+        self,
+    ) -> List[
+        Union[LlmAgentResource, SequentialAgentResource, LoopAgentResource, ParallelAgentResource]
+    ]:
         """Get all agent resources."""
-        return self.llm_agents + self.sequential_agents
+        return self.llm_agents + self.sequential_agents + self.loop_agents + self.parallel_agents
 
     def find_agent_by_name(
         self, name: str
-    ) -> Optional[Union[LlmAgentResource, SequentialAgentResource]]:
+    ) -> Optional[
+        Union[LlmAgentResource, SequentialAgentResource, LoopAgentResource, ParallelAgentResource]
+    ]:
         """Find an agent by name."""
         for agent in self.get_all_agents():
             if agent.metadata.name == name:

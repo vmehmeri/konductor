@@ -1,0 +1,191 @@
+---
+apiVersion: adk.google.com/v1alpha1
+kind: Model
+metadata:
+  name: gemini-creative
+spec:
+  provider: google
+  modelId: gemini-2.0-flash-exp
+  parameters:
+    temperature: 0.9
+    max_output_tokens: 2000
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: Model
+metadata:
+  name: gemini-analytical
+spec:
+  provider: google
+  modelId: gemini-1.5-pro
+  parameters:
+    temperature: 0.2
+    max_output_tokens: 1500
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: Tool
+metadata:
+  name: document-generator
+spec:
+  type: pythonFunction
+  description: Generate documents based on requirements
+  source:
+    file: tools/document_tools.py
+    functionName: generate_document
+  parameters:
+    - name: requirements
+      type: str
+      description: Document requirements and specifications
+      required: true
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: Tool
+metadata:
+  name: grammar-checker
+spec:
+  type: pythonFunction
+  description: Check and correct grammar in text
+  source:
+    file: tools/language_tools.py
+    functionName: check_grammar
+  parameters:
+    - name: text
+      type: str
+      description: Text to check for grammar
+      required: true
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: Tool
+metadata:
+  name: style-analyzer
+spec:
+  type: pythonFunction
+  description: Analyze writing style and tone
+  source:
+    file: tools/language_tools.py
+    functionName: analyze_style
+  parameters:
+    - name: text
+      type: str
+      description: Text to analyze for style
+      required: true
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: LlmAgent
+metadata:
+  name: initial_writer
+spec:
+  modelRef: gemini-creative
+  instruction: |
+    You are a creative writer. Generate initial drafts based on the given
+    requirements. Focus on creativity and comprehensive coverage of topics.
+  toolRefs:
+    - document-generator
+  output_key: initial_draft
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: LlmAgent
+metadata:
+  name: critic_agent
+spec:
+  modelRef: gemini-analytical
+  instruction: |
+    You are a constructive critic. Review documents and provide detailed
+    feedback on content, structure, clarity, and areas for improvement.
+    Be specific and actionable in your suggestions.
+  output_key: critique_feedback
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: LlmAgent
+metadata:
+  name: revision_agent
+spec:
+  modelRef: gemini-creative
+  instruction: |
+    You are a revision specialist. Improve documents based on critique
+    feedback while maintaining the original intent and voice.
+  toolRefs:
+    - document-generator
+  output_key: revised_draft
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: LoopAgent
+metadata:
+  name: iterative_refinement_loop
+spec:
+  subAgentRefs:
+    - critic_agent
+    - revision_agent
+  maxIterations: 3
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: LlmAgent
+metadata:
+  name: grammar_editor
+spec:
+  modelRef: gemini-analytical
+  instruction: |
+    You are a grammar and language expert. Check and correct grammar,
+    punctuation, and language usage issues.
+  toolRefs:
+    - grammar-checker
+  output_key: grammar_corrected
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: LlmAgent
+metadata:
+  name: style_editor
+spec:
+  modelRef: gemini-analytical
+  instruction: |
+    You are a style editor. Ensure consistent tone, voice, and style
+    throughout the document while maintaining readability.
+  toolRefs:
+    - style-analyzer
+  output_key: style_polished
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: ParallelAgent
+metadata:
+  name: final_editing_team
+spec:
+  subAgentRefs:
+    - grammar_editor
+    - style_editor
+  toolRefs:
+    - grammar-checker
+    - style-analyzer
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: LlmAgent
+metadata:
+  name: final_assembler
+spec:
+  modelRef: gemini-analytical
+  instruction: |
+    You are a document assembler. Combine the grammar and style edits
+    into a final, polished document ready for publication.
+  output_key: final_document
+
+---
+apiVersion: adk.google.com/v1alpha1
+kind: SequentialAgent
+metadata:
+  name: complete_document_workflow
+spec:
+  subAgentRefs:
+    - initial_writer
+    - iterative_refinement_loop
+    - final_editing_team
+    - final_assembler
