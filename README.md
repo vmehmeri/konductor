@@ -9,9 +9,9 @@ Currently **focusing on Google's Agent Development Kit (ADK)** as the primary pr
 
 Instead of writing imperative Python code to define and connect agent components, users define agents and their tools in simple YAML manifests, using the familiar Kubernetes Resource Model (KRM). A code generator then "compiles" these manifests into fully runnable Python projects.
 
-The vision for Konductor is for it to be a complete framework for declaring agent configurations across multiple AI frameworks, supporting diverse types of tools, connected data, and complex multi-agent architectures, with deployment capabilities to various agent runtimes.
+The vision for Konductor is for it to be a complete framework for declaring agent configurations across multiple AI frameworks (only committed to Google ADK at the moment), supporting diverse types of tools, connected data, and complex multi-agent architectures, with deployment capabilities to various agent runtimes.
 
-End goal: Universal agent configuration that can target multiple frameworks and deployment environments.
+End goal: Universal agent specification with a reconciliation engine that idempotently deploys agents to a container-based runtime.
 
 -----
 
