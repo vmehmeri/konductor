@@ -6,6 +6,9 @@ metadata:
 spec:
   provider: google
   modelId: gemini-2.0-flash-exp
+  retryOptions:
+    attempts: 2
+    initialDelay: 5
   parameters:
     temperature: 0.9
     max_output_tokens: 2000
@@ -17,7 +20,10 @@ metadata:
   name: gemini-analytical
 spec:
   provider: google
-  modelId: gemini-1.5-pro
+  modelId: gemini-2.5-pro
+  retryOptions:
+    attempts: 2
+    initialDelay: 5
   parameters:
     temperature: 0.2
     max_output_tokens: 1500

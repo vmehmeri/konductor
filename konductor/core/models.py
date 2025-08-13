@@ -2,10 +2,9 @@
 Provider-agnostic core models for Konductor.
 """
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Any, Dict, List, Optional, Type, Union
 
-import yaml
 from pydantic import BaseModel, Field
 
 
@@ -19,8 +18,6 @@ class Metadata(BaseModel):
 
 class ResourceSpec(BaseModel, ABC):
     """Base class for all resource specifications."""
-
-    pass
 
 
 class Resource(BaseModel, ABC):
@@ -64,12 +61,24 @@ class ToolResource(Resource):
     spec: ToolSpec
 
 
+class RetryOptions(BaseModel):
+    """Retry configuration for model requests."""
+
+    attempts: Optional[int] = None
+    initialDelay: Optional[float] = None
+    maxDelay: Optional[float] = None
+    expBase: Optional[float] = None
+    jitter: Optional[float] = None
+    httpStatusCodes: Optional[List[int]] = None
+
+
 class ModelSpec(ResourceSpec):
     """Base specification for model resources."""
 
     provider: str
     modelId: str
     parameters: Optional[Dict[str, Any]] = None
+    retryOptions: Optional[RetryOptions] = None
 
 
 class ModelResource(Resource):

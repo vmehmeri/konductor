@@ -15,11 +15,13 @@ from ...core.models import (
     ParsedManifest,
     SequentialAgentResource,
 )
-
-# Type alias for all agent types
-AgentResource = Union[LlmAgentResource, SequentialAgentResource, LoopAgentResource, ParallelAgentResource]
 from ...core.parser import ManifestParser
 from ..base import CodeGenerator
+
+# Type alias for all agent types
+AgentResource = Union[
+    LlmAgentResource, SequentialAgentResource, LoopAgentResource, ParallelAgentResource
+]
 
 
 class GoogleAdkGenerator(CodeGenerator):
@@ -102,7 +104,7 @@ class GoogleAdkGenerator(CodeGenerator):
         }
 
     def generate_code(
-        self, manifest: ParsedManifest, output_dir: str, **kwargs: Any
+        self, manifest: ParsedManifest, output_dir: str, **_kwargs: Any
     ) -> Dict[str, str]:
         """Generate Google ADK code from parsed manifest."""
         os.makedirs(output_dir, exist_ok=True)
@@ -119,7 +121,7 @@ class GoogleAdkGenerator(CodeGenerator):
         tools_template = self.env.get_template("tools.py.j2")
         tools_content = tools_template.render(tools=manifest.tools)
         tools_path = os.path.join(output_dir, "tools.py")
-        with open(tools_path, "w") as f:
+        with open(tools_path, "w", encoding="utf-8") as f:
             f.write(tools_content)
         generated_files[tools_path] = tools_content
         print(f"Generated {tools_path}")
@@ -140,7 +142,7 @@ class GoogleAdkGenerator(CodeGenerator):
             root_agent_name=root_agent_name,
         )
         agent_path = os.path.join(output_dir, "agent.py")
-        with open(agent_path, "w") as f:
+        with open(agent_path, "w", encoding="utf-8") as f:
             f.write(agent_content)
         generated_files[agent_path] = agent_content
         print(f"Generated {agent_path}")
@@ -149,7 +151,7 @@ class GoogleAdkGenerator(CodeGenerator):
         main_template = self.env.get_template("main.py.j2")
         main_content = main_template.render()
         main_path = os.path.join(output_dir, "main.py")
-        with open(main_path, "w") as f:
+        with open(main_path, "w", encoding="utf-8") as f:
             f.write(main_content)
         generated_files[main_path] = main_content
         print(f"Generated {main_path}")
@@ -157,7 +159,7 @@ class GoogleAdkGenerator(CodeGenerator):
         # Create __init__.py
         init_path = os.path.join(output_dir, "__init__.py")
         init_content = "# Auto-generated __init__.py"
-        with open(init_path, "w") as f:
+        with open(init_path, "w", encoding="utf-8") as f:
             f.write(init_content)
         generated_files[init_path] = init_content
         print(f"Generated {init_path}")
@@ -178,7 +180,8 @@ class GoogleAdkGenerator(CodeGenerator):
         for model in manifest.models:
             if model.spec.provider != "google":
                 errors.append(
-                    f"Model '{model.metadata.name}' uses provider '{model.spec.provider}', but Google ADK only supports 'google' provider"
+                    f"Model '{model.metadata.name}' uses provider "
+                    f"'{model.spec.provider}', but Google ADK only supports 'google' provider"
                 )
 
         # Check for Google-specific model IDs
@@ -186,7 +189,8 @@ class GoogleAdkGenerator(CodeGenerator):
         for model in manifest.models:
             if not any(model.spec.modelId.startswith(prefix) for prefix in google_model_prefixes):
                 errors.append(
-                    f"Model '{model.metadata.name}' has modelId '{model.spec.modelId}' which doesn't appear to be a Google model"
+                    f"Model '{model.metadata.name}' has modelId "
+                    f"'{model.spec.modelId}' which doesn't appear to be a Google model"
                 )
 
         return errors

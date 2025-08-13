@@ -2,7 +2,7 @@
 Provider-agnostic manifest parser for Konductor.
 """
 
-from typing import Any, Dict, List, Type
+from typing import List, Type
 
 import yaml
 
@@ -38,7 +38,7 @@ class ManifestParser:
         loop_agents = []
         parallel_agents = []
 
-        with open(file_path, "r") as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             docs = yaml.safe_load_all(f)
             for doc in docs:
                 if not doc:
@@ -92,7 +92,8 @@ class ManifestParser:
         for agent in manifest.llm_agents:
             if agent.spec.modelRef not in model_names:
                 errors.append(
-                    f"LlmAgent '{agent.metadata.name}' references unknown model '{agent.spec.modelRef}'"
+                    f"LlmAgent '{agent.metadata.name}' references unknown model "
+                    f"'{agent.spec.modelRef}'"
                 )
 
         # Check that all referenced tools exist
@@ -113,7 +114,8 @@ class ManifestParser:
             for sub_agent_ref in seq_agent.spec.subAgentRefs:
                 if sub_agent_ref not in agent_names:
                     errors.append(
-                        f"SequentialAgent '{seq_agent.metadata.name}' references unknown sub-agent '{sub_agent_ref}'"
+                        f"SequentialAgent '{seq_agent.metadata.name}' references "
+                        f"unknown sub-agent '{sub_agent_ref}'"
                     )
 
         # Validate LoopAgent references
@@ -121,7 +123,8 @@ class ManifestParser:
             for sub_agent_ref in loop_agent.spec.subAgentRefs:
                 if sub_agent_ref not in agent_names:
                     errors.append(
-                        f"LoopAgent '{loop_agent.metadata.name}' references unknown sub-agent '{sub_agent_ref}'"
+                        f"LoopAgent '{loop_agent.metadata.name}' references "
+                        f"unknown sub-agent '{sub_agent_ref}'"
                     )
 
         # Validate ParallelAgent references
@@ -129,7 +132,8 @@ class ManifestParser:
             for sub_agent_ref in parallel_agent.spec.subAgentRefs:
                 if sub_agent_ref not in agent_names:
                     errors.append(
-                        f"ParallelAgent '{parallel_agent.metadata.name}' references unknown sub-agent '{sub_agent_ref}'"
+                        f"ParallelAgent '{parallel_agent.metadata.name}' references "
+                        f"unknown sub-agent '{sub_agent_ref}'"
                     )
 
         return errors
