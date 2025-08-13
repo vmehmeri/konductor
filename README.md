@@ -49,7 +49,7 @@ cd konductor
 uv lock
 ```
 
-3. Set your API key:
+3. Set your API key (for testing the agent locally once deployed):
 ```bash
 export GOOGLE_API_KEY=<your-api-key>
 ```
@@ -62,13 +62,19 @@ Follow these steps to generate and run an agent:
 # 1. Generate agent code from YAML manifest using the new CLI
 uv run python -m konductor.cli generate examples/simple_agent_stack.yaml
 
+# Or try other examples:
+# uv run python -m konductor.cli generate examples/sequential_stack.yaml
+# uv run python -m konductor.cli generate examples/loop_agent_example.yaml
+# uv run python -m konductor.cli generate examples/parallel_agent_example.yaml
+# uv run python -m konductor.cli generate examples/complex_workflow_example.yaml
+
 # Or specify provider and output directory
 uv run python -m konductor.cli generate -p google_adk -o my_agent examples/simple_agent_stack.yaml
 
 # 2. Run the ADK web interface (for Google ADK provider)
 uv run adk web 
 
-# 4. Interact with your newly built agent!
+# 4. Open the browser on the indicated URL:port and test your agent
 ```
 
 
@@ -91,7 +97,10 @@ konductor/
 │   └── cli.py                    # Command-line interface
 ├── examples/                      # Example manifests
 │   ├── simple_agent_stack.yaml   # Simple agent example
-│   └── sequential_stack.yaml     # Multi-agent pipeline example
+│   ├── sequential_stack.yaml     # Multi-agent pipeline example
+│   ├── loop_agent_example.yaml   # LoopAgent with iterations example
+│   ├── parallel_agent_example.yaml # ParallelAgent example
+│   └── complex_workflow_example.yaml # Complex multi-agent workflow
 ├── tools/                         # Example tool implementations
 │   └── weather.py                # Example weather tool
 ```
@@ -130,8 +139,12 @@ spec:
   provider: google
   modelId: "gemini-2.5-flash"
   retryOptions:
-    attempts: 2
-    initialDelay: 5
+    attempts: 3
+    initialDelay: 1.0
+    maxDelay: 10.0
+    expBase: 2.0
+    jitter: 0.1
+    httpStatusCodes: [429, 500, 502, 503, 504]
   parameters:
     temperature: 0.7
 ```

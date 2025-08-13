@@ -383,7 +383,7 @@ uv run black --check . && uv run isort --check-only . && uv run pylint konductor
 ```bash
 # Install code quality tools as a pre-commit hook
 echo "#!/bin/bash
-uv run black --check . && uv run isort --check-only . && uv run pylint konductor/" > .git/hooks/pre-commit
+uv run black --check . && uv run isort --check-only . && uv run mypy konductor/ && uv run pylint konductor/ --fail-under=9.0" > .git/hooks/pre-commit 
 chmod +x .git/hooks/pre-commit
 ```
 
